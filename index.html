@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaulKS Translator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-language"></i>
+                <h1>PaulKS Translator</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" id="historyBtn" title="历史记录">
+                    <i class="fas fa-history"></i>
+                </button>
+                <button class="btn-icon" id="settingsBtn" title="设置">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要翻译区域 -->
+        <main class="main-content">
+            <div class="translation-container">
+                <!-- 语言选择栏 -->
+                <div class="language-bar">
+                    <div class="language-selector">
+                        <select id="sourceLanguage" class="language-select">
+                            <option value="auto">检测语言</option>
+                            <option value="zh">中文</option>
+                            <option value="en">English</option>
+                            <option value="ja">日本語</option>
+                            <option value="ko">한국어</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
+                            <option value="ru">Русский</option>
+                        </select>
+                    </div>
+                    
+                    <button class="swap-btn" id="swapLanguages" title="交换语言">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    
+                    <div class="language-selector">
+                        <select id="targetLanguage" class="language-select">
+                            <option value="en">English</option>
+                            <option value="zh">中文</option>
+                            <option value="ja">日本語</option>
+                            <option value="ko">한국어</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
+                            <option value="ru">Русский</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 翻译输入输出区域 -->
+                <div class="translation-panels">
+                    <!-- 输入面板 -->
+                    <div class="panel input-panel">
+                        <div class="panel-header">
+                            <span class="detected-language" id="detectedLanguage"></span>
+                            <div class="panel-actions">
+                                <button class="btn-icon" id="clearInput" title="清空">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn-icon" id="pasteBtn" title="粘贴">
+                                    <i class="fas fa-paste"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <textarea 
+                            id="inputText" 
+                            class="text-area" 
+                            placeholder="输入要翻译的文本..."
+                            maxlength="5000"
+                        ></textarea>
+                        <div class="panel-footer">
+                            <span class="char-count">
+                                <span id="charCount">0</span> / 5000
+                            </span>
+                            <div class="translate-actions">
+                                <button class="engine-btn" id="geminiBtn" data-engine="gemini" title="使用Gemini翻译">
+                                    <i class="fas fa-brain"></i>
+                                    Gemini
+                                </button>
+                                <button class="engine-btn" id="deepseekBtn" data-engine="deepseek" title="使用DeepSeek翻译">
+                                    <i class="fas fa-robot"></i>
+                                    DeepSeek
+                                </button>
+                                <button class="translate-btn" id="translateBtn">
+                                    <i class="fas fa-arrow-right"></i>
+                                    Auto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 输出面板 -->
+                    <div class="panel output-panel">
+                        <div class="panel-header">
+                            <span class="translation-engine" id="translationEngine"></span>
+                            <div class="panel-actions">
+                                <button class="btn-icon" id="copyResult" title="复制">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn-icon" id="saveToHistory" title="保存到历史">
+                                    <i class="fas fa-bookmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-area output-area" id="outputText">
+                            <div class="placeholder">翻译结果将显示在这里</div>
+                        </div>
+                        <div class="panel-footer">
+                            <div class="translation-info">
+                                <span id="translationTime"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 历史记录侧边栏 -->
+        <aside class="history-sidebar" id="historySidebar">
+            <div class="sidebar-header">
+                <h3>翻译历史</h3>
+                <button class="btn-icon" id="closeHistory">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="history-search">
+                <input type="text" id="historySearch" placeholder="搜索历史记录...">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="history-list" id="historyList">
+                <!-- 历史记录项将通过JavaScript动态添加 -->
+            </div>
+            <div class="history-actions">
+                <button class="btn-secondary" id="clearHistory">
+                    <i class="fas fa-trash"></i>
+                    清空历史
+                </button>
+            </div>
+        </aside>
+
+        <!-- 设置弹窗 -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>设置</h3>
+                    <button class="btn-icon" id="closeSettings">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-group">
+                        <label>API密钥配置</label>
+                        <div class="api-config">
+                            <div class="api-key-group">
+                                <label for="geminiApiKey">Gemini API Key:</label>
+                                <input type="password" id="geminiApiKey" placeholder="输入您的Gemini API密钥">
+                            </div>
+                            <div class="api-key-group">
+                                <label for="deepseekApiKey">DeepSeek API Key:</label>
+                                <input type="password" id="deepseekApiKey" placeholder="输入您的DeepSeek API密钥">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label>翻译引擎偏好</label>
+                        <select id="enginePreference">
+                            <option value="auto">自动选择</option>
+                            <option value="gemini">Gemini (海外优化)</option>
+                            <option value="deepseek">DeepSeek (国内优化)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="autoTranslate">
+                            自动翻译（输入时自动翻译）
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="saveHistory" checked>
+                            保存翻译历史
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="resetSettings">重置设置</button>
+                    <button class="btn-primary" id="saveSettings">保存设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载指示器 -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>翻译中...</span>
+            </div>
+        </div>
+
+        <!-- 通知提示 -->
+        <div class="notification" id="notification">
+            <i class="fas fa-check-circle"></i>
+            <span id="notificationText"></span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
