@@ -76,6 +76,7 @@ function init() {
     loadHistory();
     bindEvents();
     updateCharCount();
+    console.log('PaulKS Translator initialized');
 }
 
 // 绑定事件
@@ -233,11 +234,17 @@ async function handleTranslate(enginePreference = 'auto') {
         
         const startTime = Date.now();
         
+        console.log('Starting translation with engine:', enginePreference);
+        console.log('Text:', text);
+        console.log('From:', sourceLang, 'To:', targetLang);
+        
         // 调用翻译API
         const result = await translateText(text, sourceLang, targetLang, enginePreference);
         
         const endTime = Date.now();
         const duration = ((endTime - startTime) / 1000).toFixed(1);
+        
+        console.log('Translation result:', result);
         
         // 显示结果
         displayTranslationResult(result, duration);
@@ -266,96 +273,179 @@ async function handleTranslate(enginePreference = 'auto') {
     }
 }
 
-// 调用翻译API
+// 调用翻译API（最终修复版）
 async function translateText(text, sourceLang, targetLang, enginePreference = 'auto') {
-    let engine = enginePreference;
-    let apiKey = '';
-    let apiUrl = '';
-    let requestBody = {};
+    console.log('translateText called with:', { text, sourceLang, targetLang, enginePreference });
     
-    // 根据引擎选择API
-    if (engine === 'gemini' || (engine === 'auto' && settings.geminiApiKey)) {
-        engine = 'gemini';
-        apiKey = settings.geminiApiKey;
-        apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        
-        const prompt = `Translate the following text from ${sourceLang === 'auto' ? 'detected language' : languageNames[sourceLang]} to ${languageNames[targetLang]}. Only return the translation, no explanations:\n\n${text}`;
-        
-        requestBody = {
-            contents: [{
-                parts: [{
-                    text: prompt
-                }]
-            }]
-        };
-        
-        const response = await fetch(`${apiUrl}?key=${apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Gemini API错误: ${response.status}`);
+    let engine = enginePreference;
+    
+    // 确定使用哪个引擎
+    if (engine === 'auto') {
+        if (settings.geminiApiKey) {
+            engine = 'gemini';
+        } else if (settings.deepseekApiKey) {
+            engine = 'deepseek';
+        } else {
+            // 没有配置任何API密钥，使用模拟翻译
+            return {
+                translatedText: `[模拟翻译 ${sourceLang}→${targetLang}] ${text}`,
+                detectedLanguage: sourceLang === 'auto' ? 'en' : sourceLang,
+                engine: 'Fallback'
+            };
         }
-        
-        const data = await response.json();
-        const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '翻译失败';
-        
-        return {
-            translatedText: translatedText.trim(),
-            detectedLanguage: sourceLang === 'auto' ? 'en' : sourceLang,
-            engine: 'Gemini'
-        };
-        
-    } else if (engine === 'deepseek' || (engine === 'auto' && settings.deepseekApiKey)) {
-        engine = 'deepseek';
-        apiKey = settings.deepseekApiKey;
-        apiUrl = 'https://api.deepseek.com/v1/chat/completions';
-        
-        const prompt = `Translate the following text from ${sourceLang === 'auto' ? 'detected language' : languageNames[sourceLang]} to ${languageNames[targetLang]}. Only return the translation, no explanations:\n\n${text}`;
-        
-        requestBody = {
-            model: 'deepseek-chat',
-            messages: [{
-                role: 'user',
-                content: prompt
-            }],
-            temperature: 0.1
-        };
-        
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify(requestBody)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`DeepSeek API错误: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        const translatedText = data.choices?.[0]?.message?.content || '翻译失败';
-        
-        return {
-            translatedText: translatedText.trim(),
-            detectedLanguage: sourceLang === 'auto' ? 'en' : sourceLang,
-            engine: 'DeepSeek'
-        };
-        
-    } else {
-        // 降级方案：模拟翻译
-        return {
-            translatedText: `[模拟翻译 ${sourceLang}→${targetLang}] ${text}`,
-            detectedLanguage: sourceLang === 'auto' ? 'en' : sourceLang,
-            engine: 'Fallback'
-        };
     }
+    
+    try {
+        if (engine === 'gemini') {
+            return await callGeminiAPI(text, sourceLang, targetLang);
+        } else if (engine === 'deepseek') {
+            return await callDeepSeekAPI(text, sourceLang, targetLang);
+        }
+    } catch (error) {
+        console.error(`${engine} API failed:`, error);
+        // 如果指定引擎失败，尝试另一个引擎
+        if (engine === 'gemini' && settings.deepseekApiKey) {
+            console.log('Falling back to DeepSeek');
+            return await callDeepSeekAPI(text, sourceLang, targetLang);
+        } else if (engine === 'deepseek' && settings.geminiApiKey) {
+            console.log('Falling back to Gemini');
+            return await callGeminiAPI(text, sourceLang, targetLang);
+        }
+        throw error;
+    }
+}
+
+// Gemini API调用（使用最新API格式）
+async function callGeminiAPI(text, sourceLang, targetLang) {
+    const apiKey = settings.geminiApiKey.trim();
+    if (!apiKey) {
+        throw new Error('Gemini API密钥未配置');
+    }
+    
+    console.log('Calling Gemini API with latest format...');
+    
+    // 构建翻译提示
+    const sourceLanguageName = sourceLang === 'auto' ? 'detected language' : languageNames[sourceLang];
+    const targetLanguageName = languageNames[targetLang];
+    
+    const prompt = `Translate this text from ${sourceLanguageName} to ${targetLanguageName}. Only return the translation:\n\n${text}`;
+    
+    // 使用最新的Gemini 1.5 Flash模型
+    const requestBody = {
+        contents: [{
+            parts: [{
+                text: prompt
+            }]
+        }],
+        generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 2048,
+            topP: 0.8,
+            topK: 10
+        }
+    };
+    
+    console.log('Gemini request body:', requestBody);
+    
+    // 使用最新的API端点和模型
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    
+    console.log('Gemini API URL:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+    });
+    
+    console.log('Gemini response status:', response.status);
+    console.log('Gemini response headers:', response.headers);
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error response:', errorText);
+        throw new Error(`Gemini API错误: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Gemini response data:', data);
+    
+    const translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!translatedText) {
+        console.error('No translation text in response:', data);
+        throw new Error('Gemini API返回了空的翻译结果');
+    }
+    
+    return {
+        translatedText: translatedText.trim(),
+        detectedLanguage: sourceLang === 'auto' ? 'en' : sourceLang,
+        engine: 'Gemini'
+    };
+}
+
+// DeepSeek API调用（优化版）
+async function callDeepSeekAPI(text, sourceLang, targetLang) {
+    const apiKey = settings.deepseekApiKey.trim();
+    if (!apiKey) {
+        throw new Error('DeepSeek API密钥未配置');
+    }
+    
+    console.log('Calling DeepSeek API...');
+    
+    // 构建翻译提示
+    const sourceLanguageName = sourceLang === 'auto' ? 'detected language' : languageNames[sourceLang];
+    const targetLanguageName = languageNames[targetLang];
+    
+    const prompt = `Translate this text from ${sourceLanguageName} to ${targetLanguageName}. Only return the translation:\n\n${text}`;
+    
+    const requestBody = {
+        model: 'deepseek-chat',
+        messages: [{
+            role: 'user',
+            content: prompt
+        }],
+        temperature: 0.1,
+        max_tokens: 2048,
+        stream: false
+    };
+    
+    console.log('DeepSeek request body:', requestBody);
+    
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+    });
+    
+    console.log('DeepSeek response status:', response.status);
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('DeepSeek API error response:', errorText);
+        throw new Error(`DeepSeek API错误: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('DeepSeek response data:', data);
+    
+    const translatedText = data.choices?.[0]?.message?.content;
+    
+    if (!translatedText) {
+        console.error('No translation text in response:', data);
+        throw new Error('DeepSeek API返回了空的翻译结果');
+    }
+    
+    return {
+        translatedText: translatedText.trim(),
+        detectedLanguage: sourceLang === 'auto' ? 'en' : sourceLang,
+        engine: 'DeepSeek'
+    };
 }
 
 // 显示翻译结果
@@ -595,6 +685,8 @@ function saveSettings() {
     localStorage.setItem('translatorSettings', JSON.stringify(settings));
     closeSettings();
     showNotification('设置已保存');
+    
+    console.log('Settings saved:', settings);
 }
 
 function resetSettings() {
@@ -618,6 +710,7 @@ function loadSettings() {
     if (saved) {
         try {
             settings = { ...settings, ...JSON.parse(saved) };
+            console.log('Settings loaded:', settings);
         } catch (error) {
             console.error('Failed to load settings:', error);
         }
@@ -687,4 +780,3 @@ function handleLanguageChange() {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', init);
-
