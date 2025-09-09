@@ -57,7 +57,7 @@ const elements = {
     notificationText: document.getElementById('notificationText')
 };
 
-// 语言映射
+// 语言映射（包含东南亚语言）
 const languageNames = {
     'auto': '自动检测',
     'zh': '中文',
@@ -67,7 +67,51 @@ const languageNames = {
     'fr': 'Français',
     'de': 'Deutsch',
     'es': 'Español',
-    'ru': 'Русский'
+    'ru': 'Русский',
+    'ms': 'Bahasa Malaysia',
+    'id': 'Bahasa Indonesia',
+    'vi': 'Tiếng Việt',
+    'th': 'ภาษาไทย',
+    'km': 'ភាសាខ្មែរ',
+    'ar': 'العربية',
+    'hi': 'हिन्दी',
+    'pt': 'Português',
+    'it': 'Italiano',
+    'nl': 'Nederlands',
+    'sv': 'Svenska',
+    'da': 'Dansk',
+    'no': 'Norsk',
+    'fi': 'Suomi',
+    'pl': 'Polski',
+    'tr': 'Türkçe'
+};
+
+// 语言代码映射（用于API调用）
+const languageCodes = {
+    'zh': 'Chinese',
+    'en': 'English',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'fr': 'French',
+    'de': 'German',
+    'es': 'Spanish',
+    'ru': 'Russian',
+    'ms': 'Malay',
+    'id': 'Indonesian',
+    'vi': 'Vietnamese',
+    'th': 'Thai',
+    'km': 'Khmer',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'pt': 'Portuguese',
+    'it': 'Italian',
+    'nl': 'Dutch',
+    'sv': 'Swedish',
+    'da': 'Danish',
+    'no': 'Norwegian',
+    'fi': 'Finnish',
+    'pl': 'Polish',
+    'tr': 'Turkish'
 };
 
 // 初始化
@@ -76,7 +120,7 @@ function init() {
     loadHistory();
     bindEvents();
     updateCharCount();
-    console.log('PaulKS Translator initialized');
+    console.log('PaulKS Translator initialized with Southeast Asian languages');
 }
 
 // 绑定事件
@@ -273,7 +317,7 @@ async function handleTranslate(enginePreference = 'auto') {
     }
 }
 
-// 调用翻译API（最终修复版）
+// 调用翻译API
 async function translateText(text, sourceLang, targetLang, enginePreference = 'auto') {
     console.log('translateText called with:', { text, sourceLang, targetLang, enginePreference });
     
@@ -315,18 +359,18 @@ async function translateText(text, sourceLang, targetLang, enginePreference = 'a
     }
 }
 
-// Gemini API调用（使用最新API格式）
+// Gemini API调用（支持东南亚语言）
 async function callGeminiAPI(text, sourceLang, targetLang) {
     const apiKey = settings.geminiApiKey.trim();
     if (!apiKey) {
         throw new Error('Gemini API密钥未配置');
     }
     
-    console.log('Calling Gemini API with latest format...');
+    console.log('Calling Gemini API with Southeast Asian language support...');
     
-    // 构建翻译提示
-    const sourceLanguageName = sourceLang === 'auto' ? 'detected language' : languageNames[sourceLang];
-    const targetLanguageName = languageNames[targetLang];
+    // 构建翻译提示（支持东南亚语言）
+    const sourceLanguageName = sourceLang === 'auto' ? 'detected language' : (languageCodes[sourceLang] || languageNames[sourceLang]);
+    const targetLanguageName = languageCodes[targetLang] || languageNames[targetLang];
     
     const prompt = `Translate this text from ${sourceLanguageName} to ${targetLanguageName}. Only return the translation:\n\n${text}`;
     
@@ -361,7 +405,6 @@ async function callGeminiAPI(text, sourceLang, targetLang) {
     });
     
     console.log('Gemini response status:', response.status);
-    console.log('Gemini response headers:', response.headers);
     
     if (!response.ok) {
         const errorText = await response.text();
@@ -386,18 +429,18 @@ async function callGeminiAPI(text, sourceLang, targetLang) {
     };
 }
 
-// DeepSeek API调用（优化版）
+// DeepSeek API调用（支持东南亚语言）
 async function callDeepSeekAPI(text, sourceLang, targetLang) {
     const apiKey = settings.deepseekApiKey.trim();
     if (!apiKey) {
         throw new Error('DeepSeek API密钥未配置');
     }
     
-    console.log('Calling DeepSeek API...');
+    console.log('Calling DeepSeek API with Southeast Asian language support...');
     
-    // 构建翻译提示
-    const sourceLanguageName = sourceLang === 'auto' ? 'detected language' : languageNames[sourceLang];
-    const targetLanguageName = languageNames[targetLang];
+    // 构建翻译提示（支持东南亚语言）
+    const sourceLanguageName = sourceLang === 'auto' ? 'detected language' : (languageCodes[sourceLang] || languageNames[sourceLang]);
+    const targetLanguageName = languageCodes[targetLang] || languageNames[targetLang];
     
     const prompt = `Translate this text from ${sourceLanguageName} to ${targetLanguageName}. Only return the translation:\n\n${text}`;
     
